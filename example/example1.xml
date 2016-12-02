@@ -1,0 +1,11 @@
+<?xml version="1.0?>
+<hardware>
+	<device name="led">
+		<type>lamp</type>
+		<pin>1</pin>
+	</device>
+	<device name="pump">
+		<type>engine</type>
+		<pin>5</pin>
+	</device>
+</hardware>

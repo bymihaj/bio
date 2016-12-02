@@ -1,0 +1,12 @@
+{
+	"name": "bio",
+	"dependencies": {
+		"dgpio": "~>0.0.2"
+	},
+	"authors": [
+		"mihaj"
+	],
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2016, mihaj",
+	"license": "proprietary"
+}
