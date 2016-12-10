@@ -3,31 +3,72 @@ import std.file;
 import std.string;
 import std.xml;
 import std.getopt;
+import std.conv;
+import dgpio;
+import core.thread;
 
 void main(string[] args)
 {
 
-	auto helpInformation = getopt(args, "device", (string option, string value) {	
-		string content = cast(string)std.file.read(value);
-		DeviceOption[] res = xmlToDevice(content);
-		foreach ( device; res ) {
-			writeln(device);
+	string filePath  = "rul.xml";
+	string inUse = "";
+	getopt(args,
+		"file|f", &filePath,
+		"name|n", &inUse);
+	if (args.length > 1) {
+		switch(args[1]) {
+			
+			case "device":
+				deviceListCommand(filePath);	
+				break;
+			case "table":
+				deviceTableCommand(filePath);	
+				break;
+			case "test":
+				testDevice(filePath, inUse);
+				break;
+			default:
+				writeln("Unsupported command: " ~ args[1]);
 		}
-	});
-	
-	/*
-	writeln("Start");
-	
-	string content = cast(string)std.file.read("example//example1.xml");
-	
-	DeviceOption[] res = xmlToDevice(content);
-	
-	foreach ( device; res ) {
-		writeln(device);
+	} else {
+		writeln("Please select from commands: device, table, test");
 	}
-	
-	writeln("Finish");
-	*/
+}
+
+void deviceListCommand(string value) {
+	foreach ( device; getDeviceFromXml(value) ) {
+		writeln(device.name);
+	}
+}
+
+void deviceTableCommand(string value) {
+	string marking = "%-12s | %-3s | %-12s";
+	writefln(marking, "Name", "Pin", "Type");
+	writefln(marking, "------------", "---", "------------");
+	foreach ( device; getDeviceFromXml(value) ) {
+		writefln(marking,device.name, device.pin.value, device.type.value);
+	}
+}
+
+void testDevice(string filePath, string deviceName) {
+	foreach ( device; getDeviceFromXml(filePath) ) {
+		if ( device.name == deviceName ) {
+			writeln("Yes, I found");
+			GPIO gpio = new GPIO(to!byte(device.pin.value));
+			gpio.setOutput();
+			gpio.setHigh();
+			Thread.sleep( dur!("seconds")( 3 ) );
+			writeln("Before sleeping");
+			gpio.setLow();
+			return;
+		}
+	}
+	writefln("Device not found: %s", deviceName);
+}
+
+DeviceOption[] getDeviceFromXml(string path) {
+	string content = cast(string)std.file.read(path);
+	return xmlToDevice(content);
 }
 
 DeviceOption[] xmlToDevice(string content) {
