@@ -6,6 +6,7 @@ import std.getopt;
 import std.conv;
 import dgpio;
 import core.thread;
+import std.experimental.logger;
 
 void main(string[] args)
 {
@@ -15,17 +16,22 @@ void main(string[] args)
 	getopt(args,
 		"file|f", &filePath,
 		"name|n", &inUse);
+		
+	NotRelay[] stuff;
+	foreach ( device; getDeviceFromXml(filePath) ) {
+		stuff ~= new NotRelay(device);
+	}
+	
 	if (args.length > 1) {
 		switch(args[1]) {
-			
 			case "device":
-				deviceListCommand(filePath);	
+				deviceListCommand(stuff);	
 				break;
 			case "table":
-				deviceTableCommand(filePath);	
+				deviceTableCommand(stuff);	
 				break;
 			case "test":
-				testDevice(filePath, inUse);
+				testDevice(stuff, inUse);
 				break;
 			default:
 				writeln("Unsupported command: " ~ args[1]);
@@ -35,31 +41,27 @@ void main(string[] args)
 	}
 }
 
-void deviceListCommand(string value) {
-	foreach ( device; getDeviceFromXml(value) ) {
-		writeln(device.name);
+void deviceListCommand(NotRelay[] stuff) {
+	foreach ( item; stuff ) {
+		writeln(item.device.name);
 	}
 }
 
-void deviceTableCommand(string value) {
-	string marking = "%-12s | %-3s | %-12s";
-	writefln(marking, "Name", "Pin", "Type");
-	writefln(marking, "------------", "---", "------------");
-	foreach ( device; getDeviceFromXml(value) ) {
-		writefln(marking,device.name, device.pin.value, device.type.value);
+void deviceTableCommand(NotRelay[] stuff) {
+	string marking = "%-12s | %-3s | %-12s | %-5s";
+	writefln(marking, "Name", "Pin", "Type", "State");
+	writefln(marking, "------------", "---", "------------", "------");
+	foreach ( item; stuff ) {
+		with( item ) {
+			writefln(marking,device.name, device.pin.value, device.type.value, state());
+		}
 	}
 }
 
-void testDevice(string filePath, string deviceName) {
-	foreach ( device; getDeviceFromXml(filePath) ) {
-		if ( device.name == deviceName ) {
-			writeln("Yes, I found");
-			GPIO gpio = new GPIO(to!byte(device.pin.value));
-			gpio.setOutput();
-			gpio.setHigh();
-			Thread.sleep( dur!("seconds")( 3 ) );
-			writeln("Before sleeping");
-			gpio.setLow();
+void testDevice(NotRelay[] stuff, string deviceName) {
+	foreach ( item; stuff ) {
+		if ( item.device.name == deviceName ) {
+			item.test();
 			return;
 		}
 	}
@@ -148,4 +150,43 @@ struct DeviceOption {
 		return "name";
 	}
 	
+}
+
+class NotRelay {
+	DeviceOption device;
+	GPIO gpio;
+	
+	this(DeviceOption device) {
+		this.device = device;
+		new GPIO(to!byte(device.pin.value));
+	}
+	
+	string state() {
+		if ( gpio.isInput() ) {
+			return "OFF";
+		} else if (gpio.isHigh()) {
+			return "OFF";
+		} else {
+			return "ON";
+		}
+	}
+	
+	// TODO add interface log
+	void on() {
+		logf("%s switched ON throw pin %s", device.name, gpio.gpio);
+		gpio.setOutput();
+		gpio.setLow();
+	}
+	
+	// TODO add interface log
+	void off() {
+		logf("%s switched OFF throw pin %s", device.name, gpio.gpio);
+		gpio.setInput();
+	}
+	
+	void test() {
+		on();
+		Thread.sleep( dur!("seconds")( 3 ) );
+		off();
+	}
 }
