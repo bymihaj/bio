@@ -6,7 +6,7 @@ import std.getopt;
 import std.conv;
 import dgpio;
 import core.thread;
-import std.experimental.logger;
+
 
 void main(string[] args)
 {
@@ -173,14 +173,14 @@ class NotRelay {
 	
 	// TODO add interface log
 	void on() {
-		logf("%s switched ON throw pin %s", device.name, gpio.gpio);
+		writefln("%s switched ON throw pin %s", device.name, gpio.gpio);
 		gpio.setOutput();
 		gpio.setLow();
 	}
 	
 	// TODO add interface log
 	void off() {
-		logf("%s switched OFF throw pin %s", device.name, gpio.gpio);
+		writefln("%s switched OFF throw pin %s", device.name, gpio.gpio);
 		gpio.setInput();
 	}
 	
